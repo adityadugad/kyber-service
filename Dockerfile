@@ -2,9 +2,9 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# -----------------------------
-# System dependencies
-# -----------------------------
+# -------------------------------------------------
+# System dependencies (Render-safe)
+# -------------------------------------------------
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -17,9 +17,9 @@ RUN apt-get update && apt-get install -y \
     perl \
     && rm -rf /var/lib/apt/lists/*
 
-# -----------------------------
-# Build & install liboqs (Kyber ONLY)
-# -----------------------------
+# -------------------------------------------------
+# Build & install liboqs (Kyber / ML-KEM ONLY)
+# -------------------------------------------------
 WORKDIR /opt
 
 RUN git clone --depth 1 https://github.com/open-quantum-safe/liboqs.git
@@ -44,9 +44,9 @@ RUN mkdir build && cd build && \
     make -j$(nproc) && \
     make install
 
-# -----------------------------
-# Build Kyber service
-# -----------------------------
+# -------------------------------------------------
+# Build your Kyber service
+# -------------------------------------------------
 WORKDIR /app
 
 # Header-only HTTP library
@@ -55,8 +55,7 @@ RUN wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
 COPY main.cpp .
 COPY CMakeLists.txt .
 
-# 🔑 CRITICAL FIX:
-# liboqsConfig.cmake is under /usr/local/lib/cmake/liboqs
+# 🔑 Correct CMake invocation for Render
 RUN cmake -DCMAKE_PREFIX_PATH=/usr/local . && make
 
 # Render requirement
