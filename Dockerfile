@@ -49,13 +49,17 @@ RUN mkdir build && cd build && \
 # -----------------------------
 WORKDIR /app
 
+# Header-only HTTP library
 RUN wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
 
 COPY main.cpp .
 COPY CMakeLists.txt .
 
-# IMPORTANT: no OQS_DIR hacks needed anymore
-RUN cmake . && make
+# 🔑 CRITICAL FIX:
+# liboqsConfig.cmake is under /usr/local/lib/cmake/liboqs
+RUN cmake -DCMAKE_PREFIX_PATH=/usr/local . && make
 
+# Render requirement
 EXPOSE 8080
+
 CMD ["./kyber_service"]
