@@ -1,0 +1,13 @@
+app = "kyber-service"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[services]
+  [[services.http]]
+    internal_port = 8080
+    force_https = true
+
+    [[services.http.ports]]
+      port = 80
