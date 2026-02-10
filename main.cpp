@@ -10,7 +10,7 @@ int main() {
         const char* alg = OQS_KEM_alg_ml_kem_512;
 
         if (!OQS_KEM_alg_is_enabled(alg)) {
-            res.set_content("Kyber ML-KEM-512 not enabled", "text/plain");
+            res.set_content("ML-KEM-512 not enabled", "text/plain");
             return;
         }
 
@@ -20,24 +20,23 @@ int main() {
             return;
         }
 
-        std::vector<uint8_t> public_key(kem->length_public_key);
-        std::vector<uint8_t> secret_key(kem->length_secret_key);
-        std::vector<uint8_t> ciphertext(kem->length_ciphertext);
-        std::vector<uint8_t> shared_secret_enc(kem->length_shared_secret);
-        std::vector<uint8_t> shared_secret_dec(kem->length_shared_secret);
+        std::vector<uint8_t> pk(kem->length_public_key);
+        std::vector<uint8_t> sk(kem->length_secret_key);
+        std::vector<uint8_t> ct(kem->length_ciphertext);
+        std::vector<uint8_t> ss1(kem->length_shared_secret);
+        std::vector<uint8_t> ss2(kem->length_shared_secret);
 
-        OQS_KEM_keypair(kem, public_key.data(), secret_key.data());
-        OQS_KEM_encaps(kem, ciphertext.data(), shared_secret_enc.data(), public_key.data());
-        OQS_KEM_decaps(kem, shared_secret_dec.data(), ciphertext.data(), secret_key.data());
+        OQS_KEM_keypair(kem, pk.data(), sk.data());
+        OQS_KEM_encaps(kem, ct.data(), ss1.data(), pk.data());
+        OQS_KEM_decaps(kem, ss2.data(), ct.data(), sk.data());
 
-        bool success = (shared_secret_enc == shared_secret_dec);
+        bool ok = (ss1 == ss2);
 
         OQS_KEM_free(kem);
 
         res.set_content(
-            success
-                ? "Kyber key exchange SUCCESS (shared secrets match)"
-                : "Kyber key exchange FAILED",
+            ok ? "Kyber ML-KEM key exchange SUCCESS"
+               : "Kyber ML-KEM key exchange FAILED",
             "text/plain"
         );
     });
