@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------
-# Build & install liboqs
+# Build & install liboqs (Kyber ONLY)
 # -----------------------------
 WORKDIR /opt
 
@@ -30,6 +30,16 @@ RUN mkdir build && cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local \
           -DOPENSSL_ROOT_DIR=/usr \
           -DOPENSSL_INCLUDE_DIR=/usr/include \
+          -DOQS_ENABLE_SIG=OFF \
+          -DOQS_ENABLE_KEM=ON \
+          -DOQS_ENABLE_KEM_CLASSIC_MCELIECE=OFF \
+          -DOQS_ENABLE_KEM_FRODOKEM=OFF \
+          -DOQS_ENABLE_KEM_BIKE=OFF \
+          -DOQS_ENABLE_KEM_NTRU=OFF \
+          -DOQS_ENABLE_KEM_NTRUPRIME=OFF \
+          -DOQS_ENABLE_KEM_HQC=OFF \
+          -DOQS_ENABLE_TESTING=OFF \
+          -DOQS_BUILD_ONLY_LIB=ON \
           .. && \
     make -j$(nproc) && \
     make install
@@ -39,18 +49,13 @@ RUN mkdir build && cd build && \
 # -----------------------------
 WORKDIR /app
 
-# Download header-only HTTP library
 RUN wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
 
-# Copy application files
 COPY main.cpp .
 COPY CMakeLists.txt .
 
-# IMPORTANT: Explicitly point CMake to liboqs config
-RUN cmake -DOQS_DIR=/usr/local/lib/cmake/liboqs . && make
+# IMPORTANT: no OQS_DIR hacks needed anymore
+RUN cmake . && make
 
-# Render expects a listening port
 EXPOSE 8080
-
-# Start service
 CMD ["./kyber_service"]

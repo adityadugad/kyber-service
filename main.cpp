@@ -16,7 +16,7 @@ int main() {
 
         OQS_KEM* kem = OQS_KEM_new(alg);
         if (!kem) {
-            res.set_content("Failed to initialize KEM", "text/plain");
+            res.set_content("Failed to init Kyber", "text/plain");
             return;
         }
 
@@ -30,13 +30,12 @@ int main() {
         OQS_KEM_encaps(kem, ct.data(), ss1.data(), pk.data());
         OQS_KEM_decaps(kem, ss2.data(), ct.data(), sk.data());
 
-        bool ok = (ss1 == ss2);
-
         OQS_KEM_free(kem);
 
         res.set_content(
-            ok ? "Kyber ML-KEM key exchange SUCCESS"
-               : "Kyber ML-KEM key exchange FAILED",
+            (ss1 == ss2)
+                ? "Kyber-512 key exchange SUCCESS"
+                : "Kyber-512 key exchange FAILED",
             "text/plain"
         );
     });
