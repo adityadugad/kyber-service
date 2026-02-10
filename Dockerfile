@@ -46,8 +46,8 @@ RUN wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
 COPY main.cpp .
 COPY CMakeLists.txt .
 
-# Build application
-RUN cmake -DCMAKE_PREFIX_PATH=/usr/local . && make
+# IMPORTANT: Explicitly point CMake to liboqs config
+RUN cmake -DOQS_DIR=/usr/local/lib/cmake/liboqs . && make
 
 # Render expects a listening port
 EXPOSE 8080

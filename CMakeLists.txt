@@ -10,12 +10,12 @@ find_package(OQS REQUIRED)
 # Build executable
 add_executable(kyber_service main.cpp)
 
-# For httplib.h
+# Include httplib.h
 target_include_directories(kyber_service
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Link liboqs (modern CMake target)
+# Link liboqs
 target_link_libraries(kyber_service
     PRIVATE OQS::oqs
 )
