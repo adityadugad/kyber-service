@@ -5,7 +5,6 @@
 #include <oqs/oqs.h>
 #include "httplib.h"
 
-/* ===== OpenSSL ===== */
 #include <openssl/evp.h>
 #include <openssl/buffer.h>
 #include <openssl/bio.h>
@@ -50,7 +49,7 @@ std::vector<uint8_t> base64_decode(const std::string& input) {
 }
 
 /* =================================================
-   GLOBAL KEM OBJECT + KEYS
+   GLOBAL KEM + KEYS
    ================================================= */
 
 OQS_KEM* GLOBAL_KEM = nullptr;
@@ -100,19 +99,13 @@ int main() {
         std::string public_key_b64 =
             base64_encode(GLOBAL_PUBLIC_KEY.data(), GLOBAL_PUBLIC_KEY.size());
 
-        std::string json =
-            "{"
-            "\"algorithm\":\"ML-KEM-512\","
-            "\"public_key_b64\":\"" + public_key_b64 + "\""
-            "}";
-
-        res.set_content(json, "application/json");
+        res.set_content(public_key_b64, "text/plain");
     });
 
     /* -------------------------------------------------
-       ENCAPSULATE (Server performs encapsulation)
+       ENCAPSULATE
        ------------------------------------------------- */
-    server.Post("/encapsulate", [](const httplib::Request& req, httplib::Response& res) {
+    server.Post("/encapsulate", [](const httplib::Request&, httplib::Response& res) {
 
         std::vector<uint8_t> ciphertext(GLOBAL_KEM->length_ciphertext);
         std::vector<uint8_t> shared_secret(GLOBAL_KEM->length_shared_secret);
@@ -133,13 +126,7 @@ int main() {
         std::string aes_key_b64 =
             base64_encode(shared_secret.data(), shared_secret.size());
 
-        std::string json =
-            "{"
-            "\"kem_ciphertext_b64\":\"" + kem_ciphertext_b64 + "\","
-            "\"aes_key_b64\":\"" + aes_key_b64 + "\""
-            "}";
-
-        res.set_content(json, "application/json");
+        res.set_content(kem_ciphertext_b64 + ":" + aes_key_b64, "text/plain");
     });
 
     /* -------------------------------------------------
@@ -147,11 +134,7 @@ int main() {
        ------------------------------------------------- */
     server.Post("/decapsulate", [](const httplib::Request& req, httplib::Response& res) {
 
-        auto json = httplib::detail::parse_query_text(req.body);
-
-        std::string kem_ciphertext_b64 = json["kem_ciphertext_b64"];
-
-        auto ciphertext = base64_decode(kem_ciphertext_b64);
+        auto ciphertext = base64_decode(req.body);
 
         std::vector<uint8_t> shared_secret(GLOBAL_KEM->length_shared_secret);
 
@@ -168,12 +151,7 @@ int main() {
         std::string aes_key_b64 =
             base64_encode(shared_secret.data(), shared_secret.size());
 
-        std::string response =
-            "{"
-            "\"aes_key_b64\":\"" + aes_key_b64 + "\""
-            "}";
-
-        res.set_content(response, "application/json");
+        res.set_content(aes_key_b64, "text/plain");
     });
 
     server.listen("0.0.0.0", 8080);
