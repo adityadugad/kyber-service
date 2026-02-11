@@ -57,6 +57,23 @@ std::vector<uint8_t> GLOBAL_PUBLIC_KEY;
 std::vector<uint8_t> GLOBAL_SECRET_KEY;
 
 /* =================================================
+   SIMPLE JSON VALUE EXTRACTOR
+   (Only for very controlled input)
+   ================================================= */
+
+std::string extract_json_value(const std::string& body, const std::string& key) {
+    std::string search = "\"" + key + "\":\"";
+    size_t start = body.find(search);
+    if (start == std::string::npos) return "";
+
+    start += search.length();
+    size_t end = body.find("\"", start);
+    if (end == std::string::npos) return "";
+
+    return body.substr(start, end - start);
+}
+
+/* =================================================
    MAIN
    ================================================= */
 
@@ -87,7 +104,7 @@ int main() {
     }
 
     std::cout << "✅ ML-KEM-512 keypair generated\n";
-    std::cout << "🚀 Kyber hybrid service running on port 8080\n";
+    std::cout << "🚀 Kyber hybrid JSON service running on port 8080\n";
 
     httplib::Server server;
 
@@ -99,7 +116,13 @@ int main() {
         std::string public_key_b64 =
             base64_encode(GLOBAL_PUBLIC_KEY.data(), GLOBAL_PUBLIC_KEY.size());
 
-        res.set_content(public_key_b64, "text/plain");
+        std::string json =
+            "{"
+            "\"algorithm\":\"ML-KEM-512\","
+            "\"public_key_b64\":\"" + public_key_b64 + "\""
+            "}";
+
+        res.set_content(json, "application/json");
     });
 
     /* -------------------------------------------------
@@ -116,7 +139,7 @@ int main() {
                 shared_secret.data(),
                 GLOBAL_PUBLIC_KEY.data()) != OQS_SUCCESS) {
             res.status = 500;
-            res.set_content("Encapsulation failed", "text/plain");
+            res.set_content("{\"error\":\"Encapsulation failed\"}", "application/json");
             return;
         }
 
@@ -126,7 +149,13 @@ int main() {
         std::string aes_key_b64 =
             base64_encode(shared_secret.data(), shared_secret.size());
 
-        res.set_content(kem_ciphertext_b64 + ":" + aes_key_b64, "text/plain");
+        std::string json =
+            "{"
+            "\"kem_ciphertext_b64\":\"" + kem_ciphertext_b64 + "\","
+            "\"aes_key_b64\":\"" + aes_key_b64 + "\""
+            "}";
+
+        res.set_content(json, "application/json");
     });
 
     /* -------------------------------------------------
@@ -134,7 +163,16 @@ int main() {
        ------------------------------------------------- */
     server.Post("/decapsulate", [](const httplib::Request& req, httplib::Response& res) {
 
-        auto ciphertext = base64_decode(req.body);
+        std::string kem_ciphertext_b64 =
+            extract_json_value(req.body, "kem_ciphertext_b64");
+
+        if (kem_ciphertext_b64.empty()) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Invalid request\"}", "application/json");
+            return;
+        }
+
+        auto ciphertext = base64_decode(kem_ciphertext_b64);
 
         std::vector<uint8_t> shared_secret(GLOBAL_KEM->length_shared_secret);
 
@@ -144,14 +182,19 @@ int main() {
                 ciphertext.data(),
                 GLOBAL_SECRET_KEY.data()) != OQS_SUCCESS) {
             res.status = 500;
-            res.set_content("Decapsulation failed", "text/plain");
+            res.set_content("{\"error\":\"Decapsulation failed\"}", "application/json");
             return;
         }
 
         std::string aes_key_b64 =
             base64_encode(shared_secret.data(), shared_secret.size());
 
-        res.set_content(aes_key_b64, "text/plain");
+        std::string json =
+            "{"
+            "\"aes_key_b64\":\"" + aes_key_b64 + "\""
+            "}";
+
+        res.set_content(json, "application/json");
     });
 
     server.listen("0.0.0.0", 8080);
